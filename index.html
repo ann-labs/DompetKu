@@ -1,0 +1,2053 @@
+<!doctype html>
+<html lang="id">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Catatan Keuangan Pribadi</title>
+        <!-- Font Awesome -->
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+        />
+        <!-- Chart.js -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+        <style>
+            /* ----- RESET & GLOBAL ----- */
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family:
+                    "Inter",
+                    system-ui,
+                    -apple-system,
+                    sans-serif;
+            }
+            body {
+                background: var(--bg-body);
+                color: var(--text-primary);
+                display: flex;
+                min-height: 100vh;
+                transition:
+                    background 0.3s,
+                    color 0.3s;
+            }
+            :root {
+                --bg-body: #f4f6fa;
+                --bg-sidebar: #ffffff;
+                --bg-card: #ffffff;
+                --text-primary: #1a2634;
+                --text-secondary: #5b6b7e;
+                --border-color: #e2e8f0;
+                --shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+                --radius: 16px;
+                --primary: #4f6ef7;
+                --primary-light: #eef1ff;
+                --success: #2ecc71;
+                --danger: #e74c3c;
+                --warning: #f39c12;
+                --income-color: #2ecc71;
+                --expense-color: #e74c3c;
+                --select-bg: #ffffff;
+                --select-text: #1a2634;
+                --select-border: #e2e8f0;
+                --select-arrow: #5b6b7e;
+            }
+            [data-theme="dark"] {
+                --bg-body: #121826;
+                --bg-sidebar: #1e2538;
+                --bg-card: #242b3d;
+                --text-primary: #eef2f8;
+                --text-secondary: #a0b3cc;
+                --border-color: #2d364a;
+                --shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+                --primary-light: #2a3150;
+                --select-bg: #1e2538;
+                --select-text: #eef2f8;
+                --select-border: #2d364a;
+                --select-arrow: #a0b3cc;
+            }
+
+            /* ----- SCROLLBAR ----- */
+            ::-webkit-scrollbar {
+                width: 6px;
+            }
+            ::-webkit-scrollbar-track {
+                background: transparent;
+            }
+            ::-webkit-scrollbar-thumb {
+                background: var(--border-color);
+                border-radius: 8px;
+            }
+
+            /* ----- SIDEBAR ----- */
+            .sidebar {
+                width: 240px;
+                background: var(--bg-sidebar);
+                padding: 28px 18px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                border-right: 1px solid var(--border-color);
+                position: sticky;
+                top: 0;
+                height: 100vh;
+                overflow-y: auto;
+                transition: background 0.3s;
+                flex-shrink: 0;
+            }
+            .sidebar .logo {
+                font-size: 22px;
+                font-weight: 700;
+                color: var(--primary);
+                margin-bottom: 24px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .sidebar .logo i {
+                font-size: 26px;
+            }
+            .sidebar .nav-item {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                padding: 12px 16px;
+                border-radius: 12px;
+                color: var(--text-secondary);
+                cursor: pointer;
+                transition: 0.2s;
+                font-weight: 500;
+                font-size: 15px;
+                text-decoration: none;
+            }
+            .sidebar .nav-item:hover {
+                background: var(--primary-light);
+                color: var(--primary);
+            }
+            .sidebar .nav-item.active {
+                background: var(--primary);
+                color: #fff;
+                box-shadow: 0 4px 12px rgba(79, 110, 247, 0.3);
+            }
+            .sidebar .nav-item i {
+                width: 22px;
+                text-align: center;
+                font-size: 18px;
+            }
+            .sidebar .theme-toggle {
+                margin-top: auto;
+                padding: 12px 16px;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                cursor: pointer;
+                color: var(--text-secondary);
+                transition: 0.2s;
+                border: none;
+                background: transparent;
+                font-size: 15px;
+                font-weight: 500;
+                width: 100%;
+            }
+            .sidebar .theme-toggle:hover {
+                background: var(--primary-light);
+                color: var(--primary);
+            }
+            .sidebar .theme-toggle i {
+                font-size: 18px;
+                width: 22px;
+            }
+
+            /* ----- MAIN CONTENT ----- */
+            .main {
+                flex: 1;
+                padding: 32px 40px;
+                overflow-y: auto;
+                max-height: 100vh;
+                transition: background 0.3s;
+            }
+            .page {
+                display: none;
+                animation: fadeUp 0.3s ease;
+            }
+            .page.active {
+                display: block;
+            }
+            @keyframes fadeUp {
+                0% {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                100% {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* ----- CARDS ----- */
+            .card {
+                background: var(--bg-card);
+                border-radius: var(--radius);
+                padding: 24px 28px;
+                box-shadow: var(--shadow);
+                border: 1px solid var(--border-color);
+                transition:
+                    background 0.3s,
+                    border 0.3s;
+            }
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 18px;
+                flex-wrap: wrap;
+            }
+            .card-header h3 {
+                font-weight: 600;
+                font-size: 18px;
+            }
+            .card-header .badge {
+                background: var(--primary-light);
+                color: var(--primary);
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 13px;
+            }
+
+            /* ----- DASHBOARD STATS ----- */
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 20px;
+                margin-bottom: 28px;
+            }
+            .stat-card {
+                background: var(--bg-card);
+                border-radius: var(--radius);
+                padding: 20px 22px;
+                border: 1px solid var(--border-color);
+                box-shadow: var(--shadow);
+                transition: 0.2s;
+            }
+            .stat-card .label {
+                font-size: 14px;
+                color: var(--text-secondary);
+                font-weight: 500;
+            }
+            .stat-card .value {
+                font-size: 26px;
+                font-weight: 700;
+                margin-top: 6px;
+            }
+            .stat-card .value.income {
+                color: var(--income-color);
+            }
+            .stat-card .value.expense {
+                color: var(--expense-color);
+            }
+            .stat-card .value.balance {
+                color: var(--primary);
+            }
+
+            /* ----- CHARTS ----- */
+            .chart-row {
+                display: grid;
+                grid-template-columns: 2fr 1fr;
+                gap: 24px;
+                margin-bottom: 28px;
+            }
+            .chart-container {
+                position: relative;
+                height: 220px;
+            }
+
+            /* ----- TABLE ----- */
+            .table-wrapper {
+                overflow-x: auto;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 14px;
+            }
+            th {
+                text-align: left;
+                padding: 12px 8px;
+                color: var(--text-secondary);
+                font-weight: 600;
+                border-bottom: 2px solid var(--border-color);
+            }
+            td {
+                padding: 12px 8px;
+                border-bottom: 1px solid var(--border-color);
+                vertical-align: middle;
+            }
+            tr:hover td {
+                background: var(--primary-light);
+            }
+            .tag {
+                display: inline-block;
+                padding: 2px 12px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 500;
+                background: var(--primary-light);
+                color: var(--primary);
+            }
+            .tag.income {
+                background: #d4f5e0;
+                color: #0a7d3c;
+            }
+            .tag.expense {
+                background: #fde2e2;
+                color: #b03a2e;
+            }
+            [data-theme="dark"] .tag.income {
+                background: #1a3a2a;
+                color: #5cdb8a;
+            }
+            [data-theme="dark"] .tag.expense {
+                background: #3d1e1e;
+                color: #f28b82;
+            }
+            .amount-income {
+                color: var(--income-color);
+                font-weight: 600;
+            }
+            .amount-expense {
+                color: var(--expense-color);
+                font-weight: 600;
+            }
+            .action-btns i {
+                cursor: pointer;
+                margin: 0 4px;
+                opacity: 0.6;
+                transition: 0.2s;
+            }
+            .action-btns i:hover {
+                opacity: 1;
+                color: var(--primary);
+            }
+
+            /* ----- FILTERS & FORMS (termasuk SELECT) ----- */
+            .filter-bar {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+
+            select,
+            input[type="text"],
+            input[type="number"],
+            input[type="date"],
+            input[type="password"] {
+                padding: 10px 14px;
+                border-radius: 10px;
+                border: 1px solid var(--select-border);
+                background: var(--select-bg);
+                color: var(--select-text);
+                font-size: 14px;
+                outline: none;
+                transition: 0.2s;
+                -webkit-appearance: none;
+                -moz-appearance: none;
+                appearance: none;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235b6b7e' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+                background-repeat: no-repeat;
+                background-position: right 14px center;
+                padding-right: 40px;
+                cursor: pointer;
+                width: auto;
+                min-width: 140px;
+            }
+            [data-theme="dark"] select,
+            [data-theme="dark"] input[type="text"],
+            [data-theme="dark"] input[type="number"],
+            [data-theme="dark"] input[type="date"] {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a0b3cc' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            }
+            select:focus,
+            input:focus {
+                border-color: var(--primary);
+                box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.15);
+            }
+            select option {
+                background: var(--select-bg);
+                color: var(--select-text);
+                padding: 8px;
+            }
+
+            .filter-bar select,
+            .filter-bar input {
+                flex: 0 1 auto;
+            }
+            .modal select,
+            .modal input,
+            #settings select,
+            #settings input {
+                width: 100%;
+            }
+
+            /* ----- BUTTONS ----- */
+            .btn {
+                padding: 10px 22px;
+                border-radius: 10px;
+                border: none;
+                background: var(--primary);
+                color: #fff;
+                font-weight: 600;
+                cursor: pointer;
+                transition: 0.2s;
+                font-size: 14px;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                white-space: nowrap;
+            }
+            .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 16px rgba(79, 110, 247, 0.3);
+            }
+            .btn-outline {
+                background: transparent;
+                border: 1.5px solid var(--border-color);
+                color: var(--text-primary);
+            }
+            .btn-outline:hover {
+                background: var(--primary-light);
+                border-color: var(--primary);
+                box-shadow: none;
+                transform: none;
+            }
+            .btn-danger {
+                background: var(--danger);
+            }
+            .btn-danger:hover {
+                background: #c0392b;
+            }
+
+            /* ----- MODAL ----- */
+            .modal-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.5);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                z-index: 999;
+                backdrop-filter: blur(4px);
+            }
+            .modal-overlay.open {
+                display: flex;
+            }
+            .modal {
+                background: var(--bg-card);
+                border-radius: var(--radius);
+                padding: 32px 36px;
+                max-width: 480px;
+                width: 90%;
+                max-height: 90vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                animation: fadeUp 0.25s ease;
+            }
+            .modal h2 {
+                margin-bottom: 20px;
+                font-size: 22px;
+            }
+            .modal .form-group {
+                margin-bottom: 16px;
+            }
+            .modal .form-group label {
+                display: block;
+                font-weight: 500;
+                margin-bottom: 4px;
+                font-size: 14px;
+                color: var(--text-secondary);
+            }
+            .modal .form-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 14px;
+            }
+            .modal .btn-row {
+                display: flex;
+                gap: 12px;
+                justify-content: flex-end;
+                margin-top: 20px;
+            }
+
+            /* ----- BUDGET ----- */
+            .budget-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px 0;
+                border-bottom: 1px solid var(--border-color);
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .budget-item .info {
+                flex: 1;
+            }
+            .budget-item .info .cat {
+                font-weight: 600;
+            }
+            .budget-item .info .detail {
+                font-size: 13px;
+                color: var(--text-secondary);
+            }
+            .progress-bar {
+                width: 160px;
+                height: 8px;
+                background: var(--border-color);
+                border-radius: 10px;
+                overflow: hidden;
+            }
+            .progress-bar .fill {
+                height: 100%;
+                border-radius: 10px;
+                background: var(--primary);
+                transition: width 0.4s;
+            }
+            .progress-bar .fill.warning {
+                background: var(--warning);
+            }
+            .progress-bar .fill.danger {
+                background: var(--danger);
+            }
+
+            /* ----- EMPTY STATE ----- */
+            .empty-state {
+                text-align: center;
+                padding: 40px 0;
+                color: var(--text-secondary);
+            }
+            .empty-state i {
+                font-size: 48px;
+                opacity: 0.3;
+                margin-bottom: 12px;
+            }
+
+            /* ----- SETTINGS PAGE (diperbaiki) ----- */
+            .settings-card {
+                max-width: 560px;
+                margin-bottom: 24px;
+            }
+            .settings-card .form-group {
+                margin-bottom: 18px;
+            }
+            .settings-card .form-group label {
+                display: block;
+                font-weight: 500;
+                margin-bottom: 6px;
+                font-size: 14px;
+                color: var(--text-secondary);
+            }
+            .settings-card .form-group input,
+            .settings-card .form-group select {
+                width: 100%;
+            }
+            .settings-card .form-actions {
+                display: flex;
+                gap: 12px;
+                flex-wrap: wrap;
+                margin-top: 6px;
+            }
+            .settings-card .form-actions .btn {
+                flex: 1 1 auto;
+                justify-content: center;
+            }
+            .settings-divider {
+                border: none;
+                border-top: 1px solid var(--border-color);
+                margin: 20px 0 16px 0;
+            }
+            .settings-data-actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+                margin-top: 8px;
+            }
+            .settings-data-actions .btn {
+                flex: 1 1 auto;
+                justify-content: center;
+            }
+
+            /* ----- RESPONSIVE ----- */
+            @media (max-width: 900px) {
+                .sidebar {
+                    width: 72px;
+                    padding: 20px 10px;
+                }
+                .sidebar .logo span,
+                .sidebar .nav-item span,
+                .sidebar .theme-toggle span {
+                    display: none;
+                }
+                .sidebar .logo {
+                    justify-content: center;
+                }
+                .sidebar .nav-item {
+                    justify-content: center;
+                    padding: 12px;
+                }
+                .sidebar .theme-toggle {
+                    justify-content: center;
+                    padding: 12px;
+                }
+                .main {
+                    padding: 20px;
+                }
+                .chart-row {
+                    grid-template-columns: 1fr;
+                }
+                .stats-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+                .filter-bar select,
+                .filter-bar input {
+                    min-width: 120px;
+                }
+                .settings-card {
+                    max-width: 100%;
+                }
+            }
+            @media (max-width: 600px) {
+                .stats-grid {
+                    grid-template-columns: 1fr;
+                }
+                .modal {
+                    padding: 24px;
+                }
+                .modal .form-row {
+                    grid-template-columns: 1fr;
+                }
+                .filter-bar {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+                .filter-bar select,
+                .filter-bar input {
+                    width: 100%;
+                    min-width: unset;
+                }
+                .settings-card .form-actions,
+                .settings-data-actions {
+                    flex-direction: column;
+                }
+            }
+
+            /* ----- MISC ----- */
+            .flex-between {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+            .gap-8 {
+                gap: 8px;
+            }
+            .mt-16 {
+                margin-top: 16px;
+            }
+            .mb-16 {
+                margin-bottom: 16px;
+            }
+            .text-secondary {
+                color: var(--text-secondary);
+            }
+            .text-center {
+                text-align: center;
+            }
+            /* ===========================
+   CUSTOM SELECT
+=========================== */
+
+            .custom-select {
+                position: relative;
+                width: 100%;
+                user-select: none;
+            }
+
+            .custom-select-btn {
+                width: 100%;
+                height: 48px;
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                background: var(--bg-card);
+                color: var(--text-primary);
+                padding: 0 16px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+                transition: 0.25s;
+                font-size: 14px;
+            }
+
+            .custom-select-btn:hover {
+                border-color: var(--primary);
+            }
+
+            .custom-select.open .custom-select-btn {
+                border-color: var(--primary);
+                box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.15);
+            }
+
+            .custom-select-btn i {
+                transition: 0.25s;
+            }
+
+            .custom-select.open .custom-select-btn i {
+                transform: rotate(180deg);
+            }
+
+            .custom-select-menu {
+                position: absolute;
+                top: calc(100% + 8px);
+                left: 0;
+                right: 0;
+
+                background: var(--bg-card);
+
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+
+                box-shadow: var(--shadow);
+
+                overflow: hidden;
+
+                display: none;
+
+                z-index: 999;
+
+                max-height: 260px;
+                overflow-y: auto;
+
+                animation: dropdown 0.18s ease;
+            }
+
+            .custom-select.open .custom-select-menu {
+                display: block;
+            }
+
+            .custom-option {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+
+                padding: 12px 16px;
+
+                cursor: pointer;
+
+                transition: 0.2s;
+            }
+
+            .custom-option:hover {
+                background: var(--primary-light);
+            }
+
+            .custom-option.selected {
+                color: var(--primary);
+                font-weight: 600;
+            }
+
+            .custom-option i {
+                width: 18px;
+                text-align: center;
+            }
+
+            @keyframes dropdown {
+                from {
+                    opacity: 0;
+                    transform: translateY(-8px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <div class="logo">
+                <i class="fas fa-wallet"></i>
+                <span>Keuangan</span>
+            </div>
+            <div class="nav-item active" data-page="dashboard">
+                <i class="fas fa-chart-pie"></i>
+                <span>Dashboard</span>
+            </div>
+            <div class="nav-item" data-page="transactions">
+                <i class="fas fa-list-ul"></i>
+                <span>Transaksi</span>
+            </div>
+            <div class="nav-item" data-page="budget">
+                <i class="fas fa-coins"></i>
+                <span>Anggaran</span>
+            </div>
+            <div class="nav-item" data-page="settings">
+                <i class="fas fa-cog"></i>
+                <span>Pengaturan</span>
+            </div>
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+                <span id="themeLabel">Gelap</span>
+            </button>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main">
+            <!-- DASHBOARD -->
+            <section id="page-dashboard" class="page active">
+                <h2 style="margin-bottom: 20px">📊 Dashboard</h2>
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="label">Saldo Total</div>
+                        <div class="value balance" id="totalBalance">Rp0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Total Pemasukan</div>
+                        <div class="value income" id="totalIncome">Rp0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Total Pengeluaran</div>
+                        <div class="value expense" id="totalExpense">Rp0</div>
+                    </div>
+                </div>
+                <div class="chart-row">
+                    <div class="card">
+                        <div class="card-header"><h3>Tren Bulanan</h3></div>
+                        <div class="chart-container">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Kategori Pengeluaran</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Transaksi Terakhir</h3></div>
+                    <div id="recentTransactions">
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p>Belum ada transaksi</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TRANSACTIONS -->
+            <section id="page-transactions" class="page">
+                <div class="flex-between mb-16">
+                    <h2>📋 Transaksi</h2>
+                    <button class="btn" id="addTransactionBtn">
+                        <i class="fas fa-plus"></i> Tambah
+                    </button>
+                </div>
+                <div class="filter-bar">
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="Cari deskripsi..."
+                    />
+                    <div class="custom-select" id="filterTypeSelect">
+                        <input type="hidden" id="filterType" value="all" />
+                        <button type="button" class="custom-select-btn">
+                            <span>Semua tipe</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="custom-select-menu"></div>
+                    </div>
+                    <div class="custom-select" id="filterCategorySelect">
+                        <input type="hidden" id="filterCategory" value="all" />
+                        <button type="button" class="custom-select-btn">
+                            <span>Semua kategori</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="custom-select-menu"></div>
+                    </div>
+                    <div class="custom-select" id="filterAccountSelect">
+                        <input type="hidden" id="filterAccount" value="all" />
+
+                        <button type="button" class="custom-select-btn">
+                            <span>Semua akun</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+
+                        <div class="custom-select-menu"></div>
+                    </div>
+                    <input type="date" id="filterDate" />
+                    <button class="btn btn-outline" id="clearFilters">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </div>
+                <div class="card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Deskripsi</th>
+                                    <th>Kategori</th>
+                                    <th>Akun</th>
+                                    <th>Jumlah</th>
+                                    <th>Tipe</th>
+                                    <th style="width: 80px">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="transactionEmpty" class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>Tidak ada transaksi</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- BUDGET -->
+            <section id="page-budget" class="page">
+                <div class="flex-between mb-16">
+                    <h2>🎯 Anggaran Bulanan</h2>
+                    <button class="btn" id="addBudgetBtn">
+                        <i class="fas fa-plus"></i> Tambah Anggaran
+                    </button>
+                </div>
+                <div class="card" id="budgetList">
+                    <div class="empty-state">
+                        <i class="fas fa-coins"></i>
+                        <p>
+                            Belum ada anggaran. Buat anggaran untuk mulai
+                            mengelola!
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SETTINGS (diperbaiki) -->
+            <section id="page-settings" class="page">
+                <h2>⚙️ Pengaturan</h2>
+
+                <!-- Card Pengaturan Mata Uang -->
+                <div class="card settings-card">
+                    <h3 style="margin-bottom: 16px; font-weight: 600">
+                        Mata Uang & Kurs
+                    </h3>
+                    <div class="form-group">
+                        <label for="currencySelect">Mata Uang Utama</label>
+                        <div class="custom-select" id="currencySelectBox">
+                            <input
+                                type="hidden"
+                                id="currencySelect"
+                                value="IDR"
+                            />
+
+                            <button type="button" class="custom-select-btn">
+                                <span>IDR (Rp)</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+
+                            <div class="custom-select-menu"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="exchangeRateInput">Kurs 1 USD ke IDR</label>
+                        <input
+                            type="number"
+                            id="exchangeRateInput"
+                            value="15000"
+                            step="100"
+                        />
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn" id="saveSettingsBtn">
+                            <i class="fas fa-save"></i> Simpan Pengaturan
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card Data -->
+                <div class="card settings-card">
+                    <h3 style="margin-bottom: 8px; font-weight: 600">
+                        📁 Data
+                    </h3>
+                    <p
+                        style="
+                            color: var(--text-secondary);
+                            font-size: 14px;
+                            margin-bottom: 16px;
+                        "
+                    >
+                        Kelola data catatan keuangan Anda.
+                    </p>
+                    <div class="settings-data-actions">
+                        <button class="btn btn-outline" id="exportDataBtn">
+                            <i class="fas fa-download"></i> Ekspor Data
+                        </button>
+                        <button class="btn btn-danger" id="resetDataBtn">
+                            <i class="fas fa-trash"></i> Reset Semua Data
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- MODAL TRANSACTION -->
+        <div class="modal-overlay" id="modalOverlay">
+            <div class="modal" id="modalContent">
+                <h2 id="modalTitle">Tambah Transaksi</h2>
+                <form id="transactionForm">
+                    <input type="hidden" id="editId" />
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tipe</label>
+                            <div class="custom-select" id="formTypeSelect">
+                                <input
+                                    type="hidden"
+                                    id="formType"
+                                    value="income"
+                                />
+
+                                <button type="button" class="custom-select-btn">
+                                    <span>Pemasukan</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+
+                                <div class="custom-select-menu"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Jumlah</label
+                            ><input
+                                type="number"
+                                id="formAmount"
+                                placeholder="0"
+                                step="0.01"
+                                required
+                            />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Kategori</label>
+                        <div class="custom-select" id="formCategorySelect">
+                            <input type="hidden" id="formCategory" />
+
+                            <button type="button" class="custom-select-btn">
+                                <span>Pilih kategori</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+
+                            <div class="custom-select-menu"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Akun</label>
+                        <div class="custom-select" id="formAccountSelect">
+                            <input type="hidden" id="formAccount" />
+
+                            <button type="button" class="custom-select-btn">
+                                <span>Pilih akun</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+
+                            <div class="custom-select-menu"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Tanggal</label
+                        ><input type="date" id="formDate" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Deskripsi</label
+                        ><input
+                            type="text"
+                            id="formDescription"
+                            placeholder="Contoh: Belanja bulanan"
+                        />
+                    </div>
+                    <div class="btn-row">
+                        <button
+                            type="button"
+                            class="btn btn-outline"
+                            id="modalCancelBtn"
+                        >
+                            Batal
+                        </button>
+                        <button type="submit" class="btn" id="modalSubmitBtn">
+                            Simpan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL BUDGET -->
+        <div class="modal-overlay" id="budgetModalOverlay">
+            <div class="modal" id="budgetModalContent">
+                <h2 id="budgetModalTitle">Tambah Anggaran</h2>
+                <form id="budgetForm">
+                    <div class="form-group">
+                        <label>Kategori</label>
+                        <div class="custom-select" id="budgetCategorySelect">
+                            <input type="hidden" id="budgetCategory" />
+
+                            <button type="button" class="custom-select-btn">
+                                <span>Pilih kategori</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+
+                            <div class="custom-select-menu"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Batas Bulanan (Rp)</label
+                        ><input
+                            type="number"
+                            id="budgetLimit"
+                            placeholder="Contoh: 500000"
+                            step="1000"
+                            required
+                        />
+                    </div>
+                    <div class="btn-row">
+                        <button
+                            type="button"
+                            class="btn btn-outline"
+                            id="budgetCancelBtn"
+                        >
+                            Batal
+                        </button>
+                        <button type="submit" class="btn" id="budgetSubmitBtn">
+                            Simpan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            // ============================================================
+            // DATA LAYER
+            // ============================================================
+            const STORAGE_KEY = "financeData";
+
+            const INCOME_CATEGORIES = [
+                "Gaji",
+                "Bonus",
+                "Investasi",
+                "Hadiah",
+                "Lainnya"
+            ];
+            const EXPENSE_CATEGORIES = [
+                "Makanan",
+                "Transportasi",
+                "Belanja",
+                "Tagihan",
+                "Hiburan",
+                "Kesehatan",
+                "Pendidikan",
+                "Lainnya"
+            ];
+
+            function getDefaultData() {
+                return {
+                    transactions: [],
+                    accounts: ["Tunai", "Bank", "E-Wallet"],
+                    budgets: {},
+                    settings: { currency: "IDR", exchangeRate: 15000 }
+                };
+            }
+
+            function loadData() {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    try {
+                        const data = JSON.parse(raw);
+                        if (!data.accounts)
+                            data.accounts = ["Tunai", "Bank", "E-Wallet"];
+                        if (!data.budgets) data.budgets = {};
+                        if (!data.settings)
+                            data.settings = {
+                                currency: "IDR",
+                                exchangeRate: 15000
+                            };
+                        return data;
+                    } catch (e) {
+                        /* fall through */
+                    }
+                }
+                return getDefaultData();
+            }
+
+            function saveData(data) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            }
+
+            let appData = loadData();
+
+            // ============================================================
+            // HELPERS
+            // ============================================================
+            function generateId() {
+                return (
+                    Date.now().toString(36) +
+                    Math.random().toString(36).slice(2, 6)
+                );
+            }
+
+            function formatCurrency(amount, currency = null) {
+                const cur = currency || appData.settings.currency;
+                const symbol = cur === "USD" ? "$" : "Rp";
+                const formatted = Number(amount).toLocaleString("id-ID", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                });
+                return `${symbol} ${formatted}`;
+            }
+
+            function getCategoriesByType(type) {
+                return type === "income"
+                    ? INCOME_CATEGORIES
+                    : EXPENSE_CATEGORIES;
+            }
+
+            function getDateStr(date) {
+                const d = new Date(date);
+                return d.toISOString().split("T")[0];
+            }
+
+            function formatDate(dateStr) {
+                const d = new Date(dateStr + "T00:00:00");
+                return d.toLocaleDateString("id-ID", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric"
+                });
+            }
+
+            // ============================================================
+            // RENDER FUNCTIONS
+            // ============================================================
+            function renderDashboard() {
+                const transactions = appData.transactions;
+                const totalIncome = transactions
+                    .filter(t => t.type === "income")
+                    .reduce((s, t) => s + Number(t.amount), 0);
+                const totalExpense = transactions
+                    .filter(t => t.type === "expense")
+                    .reduce((s, t) => s + Number(t.amount), 0);
+                const balance = totalIncome - totalExpense;
+
+                document.getElementById("totalBalance").textContent =
+                    formatCurrency(balance);
+                document.getElementById("totalIncome").textContent =
+                    formatCurrency(totalIncome);
+                document.getElementById("totalExpense").textContent =
+                    formatCurrency(totalExpense);
+
+                const recent = [...transactions]
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))
+                    .slice(0, 5);
+                const container = document.getElementById("recentTransactions");
+                if (recent.length === 0) {
+                    container.innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><p>Belum ada transaksi</p></div>`;
+                } else {
+                    let html = `<table><thead><tr><th>Tanggal</th><th>Deskripsi</th><th>Jumlah</th></tr></thead><tbody>`;
+                    recent.forEach(t => {
+                        const cls =
+                            t.type === "income"
+                                ? "amount-income"
+                                : "amount-expense";
+                        html += `<tr><td>${formatDate(t.date)}</td><td>${t.description || "-"}</td><td class="${cls}">${formatCurrency(t.amount)}</td></tr>`;
+                    });
+                    html += `</tbody></table>`;
+                    container.innerHTML = html;
+                }
+                renderCharts(transactions);
+            }
+
+            let trendChartInstance = null;
+            let categoryChartInstance = null;
+
+            function renderCharts(transactions) {
+                const months = [];
+                const now = new Date();
+                for (let i = 5; i >= 0; i--) {
+                    const d = new Date(
+                        now.getFullYear(),
+                        now.getMonth() - i,
+                        1
+                    );
+                    months.push(d.toISOString().slice(0, 7));
+                }
+                const incomeData = months.map(m =>
+                    transactions
+                        .filter(
+                            t => t.type === "income" && t.date.startsWith(m)
+                        )
+                        .reduce((s, t) => s + Number(t.amount), 0)
+                );
+                const expenseData = months.map(m =>
+                    transactions
+                        .filter(
+                            t => t.type === "expense" && t.date.startsWith(m)
+                        )
+                        .reduce((s, t) => s + Number(t.amount), 0)
+                );
+
+                const ctx1 = document
+                    .getElementById("trendChart")
+                    .getContext("2d");
+                if (trendChartInstance) trendChartInstance.destroy();
+                trendChartInstance = new Chart(ctx1, {
+                    type: "line",
+                    data: {
+                        labels: months.map(
+                            m => `${m.split("-")[1]}/${m.split("-")[0]}`
+                        ),
+                        datasets: [
+                            {
+                                label: "Pemasukan",
+                                data: incomeData,
+                                borderColor: "#2ecc71",
+                                backgroundColor: "rgba(46,204,113,0.1)",
+                                fill: true,
+                                tension: 0.3
+                            },
+                            {
+                                label: "Pengeluaran",
+                                data: expenseData,
+                                borderColor: "#e74c3c",
+                                backgroundColor: "rgba(231,76,60,0.1)",
+                                fill: true,
+                                tension: 0.3
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: "top",
+                                labels: { boxWidth: 12, usePointStyle: true }
+                            }
+                        },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+
+                const expenseCategories = {};
+                transactions
+                    .filter(t => t.type === "expense")
+                    .forEach(t => {
+                        expenseCategories[t.category] =
+                            (expenseCategories[t.category] || 0) +
+                            Number(t.amount);
+                    });
+                const labels = Object.keys(expenseCategories);
+                const values = Object.values(expenseCategories);
+                const colors = [
+                    "#4f6ef7",
+                    "#f39c12",
+                    "#e74c3c",
+                    "#2ecc71",
+                    "#9b59b6",
+                    "#1abc9c",
+                    "#e67e22",
+                    "#95a5a6"
+                ];
+
+                const ctx2 = document
+                    .getElementById("categoryChart")
+                    .getContext("2d");
+                if (categoryChartInstance) categoryChartInstance.destroy();
+                categoryChartInstance = new Chart(ctx2, {
+                    type: "doughnut",
+                    data: {
+                        labels: labels.length ? labels : ["Belum ada data"],
+                        datasets: [
+                            {
+                                data: labels.length ? values : [1],
+                                backgroundColor: labels.length
+                                    ? colors.slice(0, labels.length)
+                                    : ["#ddd"],
+                                borderWidth: 0
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: "bottom",
+                                labels: { boxWidth: 12, usePointStyle: true }
+                            }
+                        },
+                        cutout: "70%"
+                    }
+                });
+            }
+
+            function renderTransactions() {
+                const filterType = document.getElementById("filterType").value;
+                const filterCategory =
+                    document.getElementById("filterCategory").value;
+                const filterAccount =
+                    document.getElementById("filterAccount").value;
+                const filterDate = document.getElementById("filterDate").value;
+                const search = document
+                    .getElementById("searchInput")
+                    .value.toLowerCase();
+
+                let list = appData.transactions;
+                if (filterType !== "all")
+                    list = list.filter(t => t.type === filterType);
+                if (filterCategory !== "all")
+                    list = list.filter(t => t.category === filterCategory);
+                if (filterAccount !== "all")
+                    list = list.filter(t => t.account === filterAccount);
+                if (filterDate) list = list.filter(t => t.date === filterDate);
+                if (search)
+                    list = list.filter(t =>
+                        (t.description || "").toLowerCase().includes(search)
+                    );
+
+                list.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                const tbody = document.getElementById("transactionTableBody");
+                const empty = document.getElementById("transactionEmpty");
+                if (list.length === 0) {
+                    tbody.innerHTML = "";
+                    empty.style.display = "block";
+                    return;
+                }
+                empty.style.display = "none";
+                let html = "";
+                list.forEach(t => {
+                    const cls =
+                        t.type === "income"
+                            ? "amount-income"
+                            : "amount-expense";
+                    const tagCls = t.type === "income" ? "income" : "expense";
+                    html += `<tr>
+                        <td>${formatDate(t.date)}</td>
+                        <td>${t.description || "-"}</td>
+                        <td><span class="tag">${t.category}</span></td>
+                        <td>${t.account}</td>
+                        <td class="${cls}">${formatCurrency(t.amount)}</td>
+                        <td><span class="tag ${tagCls}">${t.type === "income" ? "Pemasukan" : "Pengeluaran"}</span></td>
+                        <td class="action-btns">
+                            <i class="fas fa-edit" onclick="editTransaction('${t.id}')" title="Edit"></i>
+                            <i class="fas fa-trash" onclick="deleteTransaction('${t.id}')" title="Hapus" style="color:var(--danger);"></i>
+                        </td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html;
+            }
+
+            function renderBudget() {
+                const container = document.getElementById("budgetList");
+                const budgets = appData.budgets;
+                const categories = Object.keys(budgets);
+                if (categories.length === 0) {
+                    container.innerHTML = `<div class="empty-state"><i class="fas fa-coins"></i><p>Belum ada anggaran. Buat anggaran untuk mulai mengelola!</p></div>`;
+                    return;
+                }
+                const now = new Date();
+                const monthStr = now.toISOString().slice(0, 7);
+                let html = "";
+                categories.forEach(cat => {
+                    const limit = Number(budgets[cat]);
+                    const spent = appData.transactions
+                        .filter(
+                            t =>
+                                t.type === "expense" &&
+                                t.category === cat &&
+                                t.date.startsWith(monthStr)
+                        )
+                        .reduce((s, t) => s + Number(t.amount), 0);
+                    const percent =
+                        limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
+                    let fillClass = "fill";
+                    if (percent > 90) fillClass += " danger";
+                    else if (percent > 70) fillClass += " warning";
+
+                    html += `<div class="budget-item">
+                        <div class="info">
+                            <div class="cat">${cat}</div>
+                            <div class="detail">${formatCurrency(spent)} dari ${formatCurrency(limit)} tersisa</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:16px;">
+                            <div class="progress-bar"><div class="${fillClass}" style="width:${percent}%;"></div></div>
+                            <span style="font-weight:600;font-size:14px;min-width:44px;">${Math.round(percent)}%</span>
+                            <i class="fas fa-trash" onclick="deleteBudget('${cat}')" style="cursor:pointer;color:var(--danger);opacity:0.6;hover:opacity:1;"></i>
+                        </div>
+                    </div>`;
+                });
+                container.innerHTML = html;
+            }
+
+            function setSelectedOption(selectId, value) {
+                const wrapper = document.getElementById(selectId);
+                if (!wrapper) return;
+                const input = wrapper.querySelector("input");
+                const button = wrapper.querySelector(".custom-select-btn span");
+                wrapper.querySelectorAll(".custom-option").forEach(option => {
+                    option.classList.remove("selected");
+                    if (option.dataset.value === value) {
+                        option.classList.add("selected");
+                        input.value = value;
+                        button.textContent =
+                            option.querySelector("span").textContent;
+                    }
+                });
+            }
+
+            function setCustomOptions(selectId, options, selected = "") {
+                const wrapper = document.getElementById(selectId);
+                if (!wrapper) return;
+                const menu = wrapper.querySelector(".custom-select-menu");
+                const button = wrapper.querySelector(".custom-select-btn span");
+                const input = wrapper.querySelector("input");
+                menu.innerHTML = "";
+                options.forEach(opt => {
+                    const item = document.createElement("div");
+                    item.className = "custom-option";
+                    if (opt.value === selected) {
+                        item.classList.add("selected");
+                        button.textContent = opt.label;
+                        input.value = opt.value;
+                    }
+                    item.dataset.value = opt.value;
+
+                    item.innerHTML = `
+            <span>${opt.label}</span>
+        `;
+                    menu.appendChild(item);
+                });
+            }
+
+            function populateSelects() {
+                setCustomOptions(
+                    "filterTypeSelect",
+                    [
+                        { value: "all", label: "Semua tipe" },
+                        { value: "income", label: "Pemasukan" },
+                        { value: "expense", label: "Pengeluaran" }
+                    ],
+                    "all"
+                );
+                const allCategories = [
+                    ...INCOME_CATEGORIES,
+                    ...EXPENSE_CATEGORIES
+                ];
+                setCustomOptions(
+                    "filterCategorySelect",
+                    [
+                        { value: "all", label: "Semua kategori" },
+                        ...allCategories.map(c => ({
+                            value: c,
+                            label: c
+                        }))
+                    ],
+                    "all"
+                );
+                setCustomOptions(
+                    "filterAccountSelect",
+                    [
+                        { value: "all", label: "Semua akun" },
+                        ...appData.accounts.map(a => ({
+                            value: a,
+                            label: a
+                        }))
+                    ],
+                    "all"
+                );
+                setCustomOptions(
+                    "formTypeSelect",
+                    [
+                        { value: "income", label: "Pemasukan" },
+                        { value: "expense", label: "Pengeluaran" }
+                    ],
+                    "income"
+                );
+                updateFormCategories("income");
+                setCustomOptions(
+                    "formAccountSelect",
+                    appData.accounts.map(a => ({
+                        value: a,
+                        label: a
+                    })),
+                    appData.accounts[0]
+                );
+                setCustomOptions(
+                    "budgetCategorySelect",
+                    EXPENSE_CATEGORIES.map(c => ({
+                        value: c,
+                        label: c
+                    })),
+                    EXPENSE_CATEGORIES[0]
+                );
+                setCustomOptions(
+                    "currencySelectBox",
+                    [
+                        {
+                            value: "IDR",
+                            label: "IDR (Rp)"
+                        },
+                        {
+                            value: "USD",
+                            label: "USD ($)"
+                        }
+                    ],
+                    appData.settings.currency
+                );
+            }
+
+            function updateFormCategories(type) {
+                const cats = getCategoriesByType(type);
+
+                setCustomOptions(
+                    "formCategorySelect",
+                    cats.map(c => ({
+                        value: c,
+                        label: c
+                    })),
+                    cats[0]
+                );
+            }
+
+            // ============================================================
+            // MODAL HANDLING
+            // ============================================================
+            function openModal(title, data = null) {
+                document.getElementById("modalTitle").textContent = title;
+                document.getElementById("editId").value = data ? data.id : "";
+                document.getElementById("formAmount").value = data
+                    ? data.amount
+                    : "";
+                document.getElementById("formDate").value = data
+                    ? data.date
+                    : getDateStr(new Date());
+                document.getElementById("formDescription").value = data
+                    ? data.description || ""
+                    : "";
+                const type = data ? data.type : "income";
+                document.getElementById("formType").value = type;
+                updateFormCategories(type);
+                setSelectedOption("formTypeSelect", type);
+                if (data) {
+                    setSelectedOption("formCategorySelect", data.category);
+                    setSelectedOption("formAccountSelect", data.account);
+                } else {
+                    setSelectedOption(
+                        "formCategorySelect",
+                        getCategoriesByType(type)[0]
+                    );
+
+                    setSelectedOption("formAccountSelect", appData.accounts[0]);
+                }
+                document.getElementById("modalOverlay").classList.add("open");
+            }
+
+            function closeModal() {
+                document
+                    .getElementById("modalOverlay")
+                    .classList.remove("open");
+            }
+
+            function openBudgetModal(title, category = null, limit = "") {
+                document.getElementById("budgetModalTitle").textContent = title;
+                document.getElementById("budgetCategory").value =
+                    category || EXPENSE_CATEGORIES[0];
+                document.getElementById("budgetLimit").value = limit;
+                document
+                    .getElementById("budgetModalOverlay")
+                    .classList.add("open");
+            }
+
+            function closeBudgetModal() {
+                document
+                    .getElementById("budgetModalOverlay")
+                    .classList.remove("open");
+            }
+
+            // ============================================================
+            // CRUD TRANSACTIONS
+            // ============================================================
+            function saveTransaction(e) {
+                e.preventDefault();
+                const id = document.getElementById("editId").value;
+                const type = document.getElementById("formType").value;
+                const amount = parseFloat(
+                    document.getElementById("formAmount").value
+                );
+                const category = document.getElementById("formCategory").value;
+                const account = document.getElementById("formAccount").value;
+                const date = document.getElementById("formDate").value;
+                const description = document
+                    .getElementById("formDescription")
+                    .value.trim();
+
+                if (!amount || amount <= 0) {
+                    alert("Masukkan jumlah yang valid!");
+                    return;
+                }
+                if (!date) {
+                    alert("Pilih tanggal!");
+                    return;
+                }
+
+                if (id) {
+                    const idx = appData.transactions.findIndex(
+                        t => t.id === id
+                    );
+                    if (idx !== -1) {
+                        appData.transactions[idx] = {
+                            ...appData.transactions[idx],
+                            type,
+                            amount,
+                            category,
+                            account,
+                            date,
+                            description
+                        };
+                    }
+                } else {
+                    appData.transactions.push({
+                        id: generateId(),
+                        type,
+                        amount,
+                        category,
+                        account,
+                        date,
+                        description
+                    });
+                }
+                saveData(appData);
+                closeModal();
+                refreshAll();
+            }
+
+            function deleteTransaction(id) {
+                if (!confirm("Hapus transaksi ini?")) return;
+                appData.transactions = appData.transactions.filter(
+                    t => t.id !== id
+                );
+                saveData(appData);
+                refreshAll();
+            }
+
+            function editTransaction(id) {
+                const t = appData.transactions.find(t => t.id === id);
+                if (t) openModal("Edit Transaksi", t);
+            }
+
+            // ============================================================
+            // CRUD BUDGET
+            // ============================================================
+            function saveBudget(e) {
+                e.preventDefault();
+                const category =
+                    document.getElementById("budgetCategory").value;
+                const limit = parseFloat(
+                    document.getElementById("budgetLimit").value
+                );
+                if (!limit || limit <= 0) {
+                    alert("Masukkan batas anggaran yang valid!");
+                    return;
+                }
+                appData.budgets[category] = limit;
+                saveData(appData);
+                closeBudgetModal();
+                refreshAll();
+            }
+
+            function deleteBudget(category) {
+                if (!confirm(`Hapus anggaran untuk ${category}?`)) return;
+                delete appData.budgets[category];
+                saveData(appData);
+                refreshAll();
+            }
+
+            // ============================================================
+            // SETTINGS
+            // ============================================================
+            function loadSettings() {
+                document.getElementById("exchangeRateInput").value =
+                    appData.settings.exchangeRate || 15000;
+                setSelectedOption(
+                    "currencySelectBox",
+                    appData.settings.currency
+                );
+            }
+
+            function saveSettings() {
+                appData.settings.currency =
+                    document.getElementById("currencySelect").value;
+                appData.settings.exchangeRate =
+                    parseFloat(
+                        document.getElementById("exchangeRateInput").value
+                    ) || 15000;
+                saveData(appData);
+                refreshAll();
+                alert("Pengaturan disimpan!");
+            }
+
+            // ============================================================
+            // THEME
+            // ============================================================
+            function toggleTheme() {
+                const html = document.documentElement;
+                const current = html.getAttribute("data-theme");
+                const next = current === "dark" ? "light" : "dark";
+                html.setAttribute("data-theme", next);
+                document.getElementById("themeLabel").textContent =
+                    next === "dark" ? "Terang" : "Gelap";
+                document.querySelector("#themeToggle i").className =
+                    next === "dark" ? "fas fa-sun" : "fas fa-moon";
+                localStorage.setItem("theme", next);
+            }
+
+            function loadTheme() {
+                const saved = localStorage.getItem("theme") || "light";
+                document.documentElement.setAttribute("data-theme", saved);
+                document.getElementById("themeLabel").textContent =
+                    saved === "dark" ? "Terang" : "Gelap";
+                document.querySelector("#themeToggle i").className =
+                    saved === "dark" ? "fas fa-sun" : "fas fa-moon";
+            }
+
+            // ============================================================
+            // EXPORT / RESET
+            // ============================================================
+            function exportData() {
+                const blob = new Blob([JSON.stringify(appData, null, 2)], {
+                    type: "application/json"
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `keuangan_${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            function resetData() {
+                if (
+                    !confirm(
+                        "Yakin ingin menghapus semua data? Tindakan ini tidak bisa dibatalkan!"
+                    )
+                )
+                    return;
+                appData = getDefaultData();
+                saveData(appData);
+                refreshAll();
+            }
+
+            // ============================================================
+            // NAVIGATION
+            // ============================================================
+            function navigateTo(pageId) {
+                document
+                    .querySelectorAll(".page")
+                    .forEach(p => p.classList.remove("active"));
+                document
+                    .getElementById(`page-${pageId}`)
+                    .classList.add("active");
+                document
+                    .querySelectorAll(".nav-item")
+                    .forEach(n => n.classList.remove("active"));
+                document
+                    .querySelector(`.nav-item[data-page="${pageId}"]`)
+                    .classList.add("active");
+                if (pageId === "dashboard") renderDashboard();
+                else if (pageId === "transactions") renderTransactions();
+                else if (pageId === "budget") renderBudget();
+                else if (pageId === "settings") loadSettings();
+            }
+
+            function refreshAll() {
+                populateSelects();
+                const activePage = document.querySelector(".page.active");
+                if (activePage) {
+                    const id = activePage.id.replace("page-", "");
+                    navigateTo(id);
+                } else {
+                    navigateTo("dashboard");
+                }
+            }
+
+            /* ===========================
+   CUSTOM SELECT
+=========================== */
+
+            function initCustomSelect(id) {
+                const select = document.getElementById(id);
+
+                if (!select) return;
+
+                const button = select.querySelector(".custom-select-btn");
+                const menu = select.querySelector(".custom-select-menu");
+                const input = select.querySelector("input");
+
+                button.onclick = function (e) {
+                    e.stopPropagation();
+
+                    document
+                        .querySelectorAll(".custom-select.open")
+                        .forEach(s => {
+                            if (s !== select) s.classList.remove("open");
+                        });
+
+                    select.classList.toggle("open");
+                };
+
+                menu.addEventListener("click", function (e) {
+                    const option = e.target.closest(".custom-option");
+
+                    if (!option) return;
+
+                    menu.querySelectorAll(".custom-option").forEach(o => {
+                        o.classList.remove("selected");
+                    });
+
+                    option.classList.add("selected");
+
+                    input.value = option.dataset.value;
+
+                    button.querySelector("span").textContent =
+                        option.querySelector("span").textContent;
+
+                    select.classList.remove("open");
+
+                    input.dispatchEvent(new Event("change"));
+                });
+            }
+
+            document.addEventListener("click", () => {
+                document.querySelectorAll(".custom-select").forEach(s => {
+                    s.classList.remove("open");
+                });
+            });
+
+            // ============================================================
+            // EVENT BINDINGS
+            // ============================================================
+            document.addEventListener("DOMContentLoaded", function () {
+                loadTheme();
+                populateSelects();
+                initCustomSelect("formTypeSelect");
+                initCustomSelect("formCategorySelect");
+                initCustomSelect("formAccountSelect");
+                initCustomSelect("filterTypeSelect");
+                initCustomSelect("filterCategorySelect");
+                initCustomSelect("filterAccountSelect");
+                initCustomSelect("budgetCategorySelect");
+                initCustomSelect("currencySelectBox");
+                navigateTo("dashboard");
+
+                document
+                    .querySelectorAll(".nav-item[data-page]")
+                    .forEach(el => {
+                        el.addEventListener("click", function () {
+                            navigateTo(this.dataset.page);
+                        });
+                    });
+
+                document
+                    .getElementById("themeToggle")
+                    .addEventListener("click", toggleTheme);
+
+                document
+                    .getElementById("addTransactionBtn")
+                    .addEventListener("click", () =>
+                        openModal("Tambah Transaksi")
+                    );
+                document
+                    .getElementById("modalCancelBtn")
+                    .addEventListener("click", closeModal);
+                document
+                    .getElementById("modalOverlay")
+                    .addEventListener("click", function (e) {
+                        if (e.target === this) closeModal();
+                    });
+                document
+                    .getElementById("transactionForm")
+                    .addEventListener("submit", saveTransaction);
+
+                document
+                    .getElementById("formType")
+                    .addEventListener("change", function () {
+                        updateFormCategories(this.value);
+                    });
+
+                document
+                    .getElementById("addBudgetBtn")
+                    .addEventListener("click", () =>
+                        openBudgetModal("Tambah Anggaran")
+                    );
+                document
+                    .getElementById("budgetCancelBtn")
+                    .addEventListener("click", closeBudgetModal);
+                document
+                    .getElementById("budgetModalOverlay")
+                    .addEventListener("click", function (e) {
+                        if (e.target === this) closeBudgetModal();
+                    });
+                document
+                    .getElementById("budgetForm")
+                    .addEventListener("submit", saveBudget);
+
+                document
+                    .querySelectorAll(
+                        "#filterType, #filterCategory, #filterAccount, #filterDate, #searchInput"
+                    )
+                    .forEach(el => {
+                        el.addEventListener("change", renderTransactions);
+                        el.addEventListener("keyup", function (e) {
+                            if (e.key === "Enter") renderTransactions();
+                        });
+                    });
+                document
+                    .getElementById("clearFilters")
+                    .addEventListener("click", function () {
+                        document.getElementById("filterType").value = "all";
+                        document.getElementById("filterCategory").value = "all";
+                        document.getElementById("filterAccount").value = "all";
+                        document.getElementById("filterDate").value = "";
+                        document.getElementById("searchInput").value = "";
+                        renderTransactions();
+                    });
+
+                document
+                    .getElementById("saveSettingsBtn")
+                    .addEventListener("click", saveSettings);
+                document
+                    .getElementById("exportDataBtn")
+                    .addEventListener("click", exportData);
+                document
+                    .getElementById("resetDataBtn")
+                    .addEventListener("click", resetData);
+
+                refreshAll();
+            });
+        </script>
+    </body>
+</html>
